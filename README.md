@@ -2,7 +2,7 @@
 A set of tools for Microsoft Visual FoxPro implementing the most common internet protocols.
 
 
-This project started as a freeware library in www.ifox.com.ar around 1999 to demonstrate what can be done in Microsoft Visual FoxPro.
+This project started as a freeware library in the now gone ifox.com.ar site around 1999 to demonstrate what can be done in Microsoft Visual FoxPro.
 As years passes by it evolved as a complete solution, covering a broad range of protocols.
 
 As Pablo Pioli, the original developer, moved to other horizons the source code went public with a LGPL license.
