@@ -396,6 +396,175 @@ this.Upload = .T.
 Return(.T.)
 
 
+***
+* Function RESTCall
+***
+Function RESTCall(cServer, cURL, nPort, cCommand, cContentType, cContent, cAdditionalHeaders)
+Local nInetHandle, nHTTPSession, nHTTPResult, nFlags, oResponse
+Local cHeaders, nRetVal, cReadBuffer, nBytesRead, cRes, cHTTPData
+
+
+* Inicializar Variables
+this.ErrorNumber = 0
+this.StatusCode = 0
+
+If Type("nPort") <> "N"
+   nPort = INTERNET_DEFAULT_HTTP_PORT
+Endif
+
+If Type("cAdditionalHeaders") <> "C"
+   cAdditionalHeaders = ""
+Endif
+
+
+oResponse = CreateObject("RestResponse")
+
+
+
+* Inicializar los servicios de Internet
+nInetHandle = InternetOpen("iFox", this.ConnectionType, this.ProxyServer, "", 0)
+
+If nInetHandle == 0
+   oResponse.ErrorNumber = GetLastError()
+   oResponse.HasErrors = .T.
+   Return(oResponse)
+Endif
+
+
+
+* Establecer una sesion
+nHTTPSession = InternetConnect(nInetHandle, cServer, nPort, "", "", INTERNET_SERVICE_HTTP, 0, 0)
+
+If nHTTPSession == 0
+   oResponse.ErrorNumber = GetLastError()
+   oResponse.HasErrors = .T.
+
+   InternetCloseHandle(nInetHandle)
+
+   Return(oResponse)
+Endif
+
+
+
+* Conectarse
+nHTTPResult = HttpOpenRequest(nHTTPSession, cCommand, ;
+                              cURL, NULL, NULL, NULL, ;
+                              INTERNET_FLAG_RELOAD + IIF(nPort == 443, INTERNET_FLAG_SECURE, 0), 0)
+
+If nHTTPResult == 0
+   oResponse.ErrorNumber = GetLastError()
+   oResponse.HasErrors = .T.
+
+   InternetCloseHandle(nHTTPSession)
+   InternetCloseHandle(nInetHandle)
+
+   Return(oResponse)
+Endif
+
+
+* Establecer opciones de certificados SSL
+If this.IgnoreSSLErrors
+   Declare Integer InternetSetOption In WinInet.DLL Integer hInternet, Integer dwFlags, Integer @dwValue, Integer cbSize
+
+   nFlags = SECURITY_FLAG_IGNORE_UNKNOWN_CA + ;
+            SECURITY_FLAG_IGNORE_CERT_DATE_INVALID + ;
+            SECURITY_FLAG_IGNORE_CERT_CN_INVALID + ;
+            SECURITY_FLAG_IGNORE_REVOCATION + ;
+            SECURITY_FLAG_IGNORE_WRONG_USAGE
+
+   If InternetSetOption(nHTTPResult, INTERNET_OPTION_SECURITY_FLAGS, @nFlags, 4) == 0
+      oResponse.ErrorNumber = GetLastError()
+      oResponse.HasErrors = .T.
+
+      InternetCloseHandle(nHTTPSession)
+      InternetCloseHandle(nInetHandle)
+
+      Return(oResponse)
+   Endif
+Endif
+
+
+* Preparar la informacion a enviar
+cHeaders = "Content-Type:" + cContentType + Chr(13) + Chr(10)
+
+If !Empty(cAdditionalHeaders)
+   cHeaders = cHeaders + cAdditionalHeaders
+   If Right(cHeaders, 2) <> Chr(13) + Chr(10)
+      cHeaders = cHeaders + Chr(13) + Chr(10)
+   Endif
+Endif
+
+
+* Enviar los datos
+nRetval = HttpSendRequest(nHTTPResult, cHeaders, Len(cHeaders), ;
+                          cContent, Len(cContent))
+
+If nRetval = 0
+   oResponse.ErrorNumber = GetLastError()
+   oResponse.HasErrors = .T.
+
+   InternetCloseHandle(nHTTPSession)
+   InternetCloseHandle(nInetHandle)
+
+   Return(oResponse)
+Endif
+
+
+
+* Leer el resultado
+cRes = ""
+
+Do While .T.
+   cReadBuffer = Space(65536)
+   nBytesRead = 0
+
+   nRetval = InternetReadFile(nHTTPResult, @cReadBuffer,;
+                              Len(cReadBuffer), @nBytesRead)
+
+   If nRetVal == 0
+      Exit
+   else
+      If nBytesRead == 0
+         Exit
+      else
+         cReadBuffer = IIF(nBytesRead > 1, SubStr(cReadBuffer, 1, nBytesRead), "")
+         cRes = cRes + cReadBuffer
+      Endif
+   Endif
+
+Enddo
+
+
+oResponse.Response = cRes
+
+cHTTPData = Space(10)
+HttpQueryInfo(nHTTPResult, 19, @cHTTPData, Len(cHTTPData), 0)
+oResponse.StatusCode = Val(cHTTPData)
+
+cHTTPData = Space(100)
+HttpQueryInfo(nHTTPResult, 1, @cHTTPData, Len(cHTTPData), 0)
+oResponse.ContentType = RTrim(cHTTPData)
+
+
+If nRetval = 0
+   oResponse.ErrorNumber = GetLastError()
+   oResponse.HasErrors = .T.
+
+   InternetCloseHandle(nHTTPSession)
+   InternetCloseHandle(nInetHandle)
+
+   Return(oResponse)
+else
+   InternetCloseHandle(nHTTPSession)
+   InternetCloseHandle(nInetHandle)
+Endif
+
+
+Return(oResponse)
+
+EndFunc
+
+
 
 ***
 * Function Post
@@ -1049,5 +1218,19 @@ Next
 
 Return(cNom_Arch)
 
+
+EndDefine
+
+
+*************************   RESTRESPONSE CLASS   ****************************
+
+****************************************************************************
+Define Class RestResponse as Custom
+
+             HasErrors = .F.
+             ErrorNumber = 0
+             Response = ""
+             ContentType = 0
+             StatusCode = 0
 
 EndDefine
