@@ -46,19 +46,19 @@ This component allows to start a download and continue it in another moment like
 
 **Sockets**
 
-This component wraps the Winsock 2 functionality in a simple and poweful package. Stablish multiple connections simultaneosly and use multiple ports. Build a server with just a few lines of code.
+This component wraps the Winsock 2 functionality in a simple and poweful package. Establish multiple connections simultaneosly and use multiple ports. Build a server with just a few lines of code.
 
 
 **Connect**
 
-Stablish and close Internet connections with this component. You can also monitor any connection statistics. 
+Establish and close Internet connections with this component. You can also monitor any connection statistics. 
 
 
 **XML**
 
-Using iFox.XML is possible to convert one or multiple cursors to the XML format or the inverse. You can also build an XML file dinamically. 
+Using iFox.XML is possible to convert one or multiple cursors to the XML format or the inverse. You can also build an XML file dynamically. 
 
 
 **NTP**
 
-Communicates with time servers. 
+Communicates with time servers.
